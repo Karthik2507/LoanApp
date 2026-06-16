@@ -310,6 +310,18 @@ html.dark .modal-overlay {
           </div>
         {% endif %}
         <div class="form-row"><label>Start Date</label>{{ form.start_date() }}</div>
+        {% if mode != 'edit' %}
+          <div class="form-row">
+            <label>Interest Calculation Days</label>
+            {{ form.interest_calculation_days(style="padding:8px 12px;border:1px solid var(--slate-200);border-radius:10px;width:100%") }}
+            {% for e in form.interest_calculation_days.errors %}<div class="err">{{ e }}</div>{% endfor %}
+          </div>
+        {% else %}
+          <div class="form-row">
+            <label>Interest Calculation Days</label>
+            {{ form.interest_calculation_days(disabled=True, style="padding:8px 12px;border:1px solid var(--slate-200);border-radius:10px;width:100%") }}
+          </div>
+        {% endif %}
         <div class="form-row"><label>Balloon Date (optional)</label>{{ form.balloon_date() }}</div>
         <div class="form-row"><label>Balloon Amount (optional)</label>{{ form.balloon_amount() }}</div>
       </div>
@@ -381,6 +393,9 @@ html.dark .modal-overlay {
 
             <div class="confirm-label" id="lbl_start_date">Start Date</div>
             <div class="confirm-value" id="val_start_date"></div>
+
+            <div class="confirm-label" id="lbl_interest_calculation_days">Calculation Days</div>
+            <div class="confirm-value" id="val_interest_calculation_days"></div>
 
             <div class="confirm-label" id="lbl_custom_emi">Revised EMI</div>
             <div class="confirm-value" id="val_custom_emi"></div>
@@ -627,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const formInputs = [
         'loan_amount', 'down_payment', 'custom_emi', 
         'interest_rate', 'tenure_months', 'tenure_unit', 'balloon_date', 
-        'balloon_amount', 'start_date'
+        'balloon_amount', 'start_date', 'interest_calculation_days'
     ];
 
     formInputs.forEach(id => {
@@ -714,6 +729,9 @@ document.addEventListener('DOMContentLoaded', function() {
             startDate = new Date(startDateVal);
         }
 
+        const interestDaysEl = document.getElementById('interest_calculation_days');
+        const interestDays = interestDaysEl ? interestDaysEl.value : '365';
+
         const formatMoney = (val) => {
             return '₹ ' + val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         };
@@ -726,7 +744,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 payDate.setMonth(payDate.getMonth() + i);
             }
 
-            const interest = Math.max(Number((principalOutstanding * monthlyRate).toFixed(2)), 0.0);
+            let interest = 0;
+            if (interestDays === '365' && startDate && payDate) {
+                const prevDate = new Date(startDate);
+                prevDate.setMonth(prevDate.getMonth() + i - 1);
+                const days = Math.round((payDate - prevDate) / (1000 * 60 * 60 * 24));
+                interest = principalOutstanding * (annualRate / 100.0) * (days / 365.0);
+            } else if (interestDays === '360_actual' && startDate && payDate) {
+                const prevDate = new Date(startDate);
+                prevDate.setMonth(prevDate.getMonth() + i - 1);
+                const days = Math.round((payDate - prevDate) / (1000 * 60 * 60 * 24));
+                interest = principalOutstanding * (annualRate / 100.0) * (days / 360.0);
+            } else {
+                interest = principalOutstanding * monthlyRate;
+            }
+            interest = Math.max(Number(interest.toFixed(2)), 0.0);
             let principalComponent = Number((emi - interest).toFixed(2));
 
             if (balDate && payDate && payDate >= balDate) {
@@ -907,6 +939,10 @@ document.addEventListener('DOMContentLoaded', function() {
         setVal('val_tenure', tenureText);
         
         setVal('val_start_date', document.getElementById('start_date').value);
+        
+        const daysEl = document.getElementById('interest_calculation_days');
+        const daysVal = daysEl ? daysEl.options[daysEl.selectedIndex].text : '';
+        setVal('val_interest_calculation_days', daysVal);
         
         // Optional custom emi
         const customEmiEl = document.getElementById('custom_emi');

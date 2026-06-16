@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.models import Loan, Schedule, ActivityLog, LoanAuditLog, Setting, RecalculationHistory
-from app.utils import generate_amortization, update_loan_progress, emi_amount, recalc_unpaid_with_new_rate, recalc_with_lumpsum
+from app.utils import generate_amortization, update_loan_progress, emi_amount, recalc_unpaid_with_new_rate, recalc_with_lumpsum, calculate_interest_amount
 
 
 chatbot_bp = Blueprint("chatbot", __name__, url_prefix="/chatbot")
@@ -62,7 +62,8 @@ def create_loan(
     start_date: str,
     down_payment: float = 0.0,
     custom_emi: float = None,
-    notes: str = None
+    notes: str = None,
+    interest_calculation_days: str = "365"
 ):
     """Create a new loan with the specified details.
     All rates are in % (e.g. 5.5), and start_date must be in YYYY-MM-DD format.
@@ -95,7 +96,8 @@ def create_loan(
             custom_emi=float(custom_emi) if custom_emi else None,
             start_date=parsed_start_date,
             tenure_months=int(tenure_months),
-            notes=notes
+            notes=notes,
+            interest_calculation_days=interest_calculation_days or "360"
         )
         db.session.add(loan)
         db.session.flush()
@@ -168,7 +170,6 @@ def update_loan_tenure(loan_id: str, new_tenure_months: int):
             return {"error": "No unpaid installments remaining to adjust tenure."}
             
         remaining = loan.remaining_balance
-        monthly_rate = (loan.interest_rate / 100.0) / 12.0
         new_emi = emi_amount(remaining, loan.interest_rate, int(new_tenure_months))
         
         start_date = unpaid[0].payment_date
@@ -179,14 +180,16 @@ def update_loan_tenure(loan_id: str, new_tenure_months: int):
         db.session.flush()
         
         rem = remaining
+        convention = getattr(loan, 'interest_calculation_days', '360') or '360'
         for i in range(1, int(new_tenure_months) + 1):
-            interest = max(round(rem * monthly_rate, 2), 0.0)
+            pay_date = start_date + relativedelta(months=i-1)
+            prev_date = pay_date - relativedelta(months=1)
+            interest = calculate_interest_amount(rem, loan.interest_rate, prev_date, pay_date, convention)
             principal = round(new_emi - interest, 2)
             if i == int(new_tenure_months) or principal >= rem:
                 principal = round(rem, 2)
                 emi = round(principal + interest, 2)
                 rem = 0.0
-                pay_date = start_date + relativedelta(months=i-1)
                 db.session.add(Schedule(
                     loan_id=loan.id,
                     month_index=start_idx + i,
@@ -282,7 +285,6 @@ def simulate_recalculation(loan_id: str, extra_monthly: float = 0.0, lumpsum: fl
     original_remaining_interest = sum(s.interest for s in unpaid)
     original_remaining_months = len(unpaid)
     
-    monthly_rate = (loan.interest_rate / 100.0) / 12.0
     rem_sim = loan.remaining_balance
     
     # Apply one-time lump-sum in Month 1 (if any)
@@ -291,10 +293,13 @@ def simulate_recalculation(loan_id: str, extra_monthly: float = 0.0, lumpsum: fl
     sim_interest_total = 0.0
     sim_months_taken = 0
     
+    convention = getattr(loan, 'interest_calculation_days', '360') or '360'
     for s in unpaid:
         if rem_sim <= 0.01:
             break
-        interest = round(rem_sim * monthly_rate, 2)
+        pay_date = s.payment_date
+        prev_date = pay_date - relativedelta(months=1)
+        interest = calculate_interest_amount(rem_sim, loan.interest_rate, prev_date, pay_date, convention)
         principal = round((s.emi - interest) + (extra_monthly or 0.0), 2)
         if principal >= rem_sim:
             sim_interest_total += interest
@@ -340,11 +345,13 @@ def apply_recalculation_change(loan_id: str, extra_monthly: float = 0.0, lumpsum
             
         if extra_monthly > 0:
             unpaid = sorted([s for s in loan.schedules if s.payment_status != "Paid"], key=lambda x: x.month_index)
-            monthly_rate = (loan.interest_rate / 100.0) / 12.0
             rem = loan.remaining_balance
             cleared_at = None
+            convention = getattr(loan, 'interest_calculation_days', '360') or '360'
             for s in unpaid:
-                interest = round(rem * monthly_rate, 2)
+                pay_date = s.payment_date
+                prev_date = pay_date - relativedelta(months=1)
+                interest = calculate_interest_amount(rem, loan.interest_rate, prev_date, pay_date, convention)
                 principal = round((s.emi - interest) + extra_monthly, 2)
                 if principal >= rem:
                     principal = round(rem, 2)

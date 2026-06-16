@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.models import Loan, Schedule, ActivityLog, LoanAuditLog, BalloonPayment
 from app.forms import LoanForm
-from app.utils import generate_amortization, update_loan_progress, emi_amount
+from app.utils import generate_amortization, update_loan_progress, emi_amount, calculate_interest_amount
 
 loans_bp = Blueprint("loans", __name__, url_prefix="/loans")
 
@@ -45,12 +45,13 @@ def recalculate_unpaid_schedules(loan):
     Schedule.query.filter((Schedule.loan_id == loan.id) & (Schedule.payment_status != 'Paid')).delete()
     db.session.flush()
     
-    monthly_rate = (loan.interest_rate / 100.0) / 12.0
     rem = remaining_principal
+    convention = getattr(loan, 'interest_calculation_days', '360') or '360'
     
     for i in range(1, unpaid_count + 1):
         pay_date = start_date + relativedelta(months=i)
-        interest = max(round(rem * monthly_rate, 2), 0.0)
+        prev_date = start_date + relativedelta(months=i-1)
+        interest = calculate_interest_amount(rem, loan.interest_rate, prev_date, pay_date, convention)
         principal_component = round(emi - interest, 2)
         
         if loan.balloon_date and pay_date >= loan.balloon_date:
@@ -170,6 +171,7 @@ def add():
             balloon_date=form.balloon_date.data,
             balloon_amount=form.balloon_amount.data,
             notes=form.notes.data,
+            interest_calculation_days=form.interest_calculation_days.data or "360",
         )
         db.session.add(loan)
         db.session.flush()
@@ -379,7 +381,10 @@ def bulk_upload():
         uploaded_tenure_months = int(round(tenure_val * 12)) if tenure_unit == "years" else int(tenure_val)
         if loan.tenure_months != uploaded_tenure_months:
             return False
-
+        
+        if (loan.interest_calculation_days or "360").strip() != (row.get("interest_calculation_days") or "360").strip():
+            return False
+            
         return True
 
     for row in data:
@@ -433,7 +438,8 @@ def bulk_upload():
                 ("tenure_months", existing_loan.tenure_months, tenure_months),
                 ("balloon_date", existing_loan.balloon_date, balloon_date),
                 ("balloon_amount", existing_loan.balloon_amount, balloon_amount),
-                ("notes", existing_loan.notes, notes)
+                ("notes", existing_loan.notes, notes),
+                ("interest_calculation_days", existing_loan.interest_calculation_days or "360", row.get("interest_calculation_days") or "360")
             ]:
                 if old != new:
                     db.session.add(LoanAuditLog(loan_id=existing_loan.id, field=field, old_value=str(old), new_value=str(new)))
@@ -450,6 +456,7 @@ def bulk_upload():
             existing_loan.balloon_date = balloon_date
             existing_loan.balloon_amount = balloon_amount
             existing_loan.notes = notes
+            existing_loan.interest_calculation_days = row.get("interest_calculation_days") or "360"
             
             db.session.flush()
             recalculate_unpaid_schedules(existing_loan)
@@ -471,7 +478,8 @@ def bulk_upload():
                 tenure_months=tenure_months,
                 balloon_date=balloon_date,
                 balloon_amount=balloon_amount,
-                notes=notes
+                notes=notes,
+                interest_calculation_days=row.get("interest_calculation_days") or "360"
             )
             db.session.add(loan)
             db.session.flush()

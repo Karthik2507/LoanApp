@@ -43,6 +43,17 @@
         <table class="tbl">
           <tr><td>Start Date</td><td>{{ loan.start_date|fdate }}</td></tr>
           <tr><td>Created</td><td>{{ loan.created_at|fdate }}</td></tr>
+          <tr><td>Interest Calculation Days</td>
+              <td>
+                {% if loan.interest_calculation_days == '365' %}
+                  365 Days (Actual/365)
+                {% elif loan.interest_calculation_days == '360_actual' %}
+                  360 Days (Actual/360)
+                {% else %}
+                  360 Days (Flat/30/360)
+                {% endif %}
+              </td>
+          </tr>
           {% if loan.balloon_date %}<tr><td>Balloon Date</td><td>{{ loan.balloon_date|fdate }}</td></tr>{% endif %}
           {% if loan.balloon_amount %}<tr><td>Balloon Amount</td><td>{{ loan.balloon_amount|money }}</td></tr>{% endif %}
           {% if loan.closed_at %}<tr><td>Closed</td><td>{{ loan.closed_at|fdate }}</td></tr>{% endif %}

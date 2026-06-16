@@ -64,6 +64,26 @@ def emi_amount(principal: float, annual_rate: float, months: int) -> float:
     return round(emi, 2)
 
 
+def calculate_interest_amount(principal: float, annual_rate: float, start_date: date, end_date: date, day_count_convention: str) -> float:
+    """Calculate the interest amount for a period based on the day count convention."""
+    if not day_count_convention:
+        day_count_convention = "360"
+    
+    if day_count_convention == "365":
+        # Actual/365
+        days = (end_date - start_date).days
+        interest = principal * (annual_rate / 100.0) * (days / 365.0)
+    elif day_count_convention == "360_actual":
+        # Actual/360
+        days = (end_date - start_date).days
+        interest = principal * (annual_rate / 100.0) * (days / 360.0)
+    else:
+        # "360" (Flat / 30/360)
+        # Standard flat monthly calculation: rate / 12
+        interest = principal * (annual_rate / 100.0) / 12.0
+    return max(round(interest, 2), 0.0)
+
+
 def generate_amortization(loan):
     """Build a list of dicts representing the schedule rows.
     Handles balloon: if balloon_date/amount set, the installment dated
@@ -74,16 +94,17 @@ def generate_amortization(loan):
     principal_outstanding = float(loan.loan_amount) - float(loan.down_payment or 0)
     annual_rate = float(loan.interest_rate)
     months = int(loan.tenure_months)
-    monthly_rate = (annual_rate / 100.0) / 12.0
     if loan.custom_emi:
         emi = float(loan.custom_emi)
     else:
         emi = emi_amount(principal_outstanding, annual_rate, months)
 
     bal_date = loan.balloon_date
+    convention = getattr(loan, 'interest_calculation_days', '360') or '360'
     for i in range(1, months + 1):
+        prev_date = loan.start_date + relativedelta(months=i-1)
         pay_date = loan.start_date + relativedelta(months=i)
-        interest = max(round(principal_outstanding * monthly_rate, 2), 0.0)
+        interest = calculate_interest_amount(principal_outstanding, annual_rate, prev_date, pay_date, convention)
         principal_component = round(emi - interest, 2)
         is_balloon = False
 
@@ -169,11 +190,12 @@ def recalc_unpaid_with_new_rate(loan, new_rate: float, effective_date: date):
         start_date = loan.start_date
 
     months_left = len(unpaid)
-    monthly_rate = (new_rate / 100.0) / 12.0
     new_emi = emi_amount(remaining_principal, new_rate, months_left)
+    convention = getattr(loan, 'interest_calculation_days', '360') or '360'
 
     for n, s in enumerate(sorted(unpaid, key=lambda x: x.month_index), start=1):
-        interest = max(round(remaining_principal * monthly_rate, 2), 0.0)
+        prev_date = s.payment_date - relativedelta(months=1)
+        interest = calculate_interest_amount(remaining_principal, new_rate, prev_date, s.payment_date, convention)
         principal_component = round(new_emi - interest, 2)
         if principal_component >= remaining_principal or n == months_left:
             principal_component = round(remaining_principal, 2)
@@ -211,10 +233,11 @@ def recalc_with_lumpsum(loan, lumpsum: float):
         remaining = float(loan.loan_amount) - float(loan.down_payment or 0)
     remaining = max(remaining - lumpsum, 0.0)
     months_left = len(unpaid)
-    monthly_rate = (float(loan.interest_rate) / 100.0) / 12.0
     new_emi = emi_amount(remaining, float(loan.interest_rate), months_left)
+    convention = getattr(loan, 'interest_calculation_days', '360') or '360'
     for n, s in enumerate(unpaid, start=1):
-        interest = max(round(remaining * monthly_rate, 2), 0.0)
+        prev_date = s.payment_date - relativedelta(months=1)
+        interest = calculate_interest_amount(remaining, float(loan.interest_rate), prev_date, s.payment_date, convention)
         principal_component = round(new_emi - interest, 2)
         if principal_component >= remaining or n == months_left:
             principal_component = round(remaining, 2)

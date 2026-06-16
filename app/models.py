@@ -52,6 +52,7 @@ class Loan(db.Model):
     balloon_date = db.Column(db.Date, nullable=True)
     balloon_amount = db.Column(db.Float, nullable=True)
     notes = db.Column(db.Text)
+    interest_calculation_days = db.Column(db.String(20), nullable=False, default="360")
     closed_at = db.Column(db.DateTime, nullable=True)
     final_amount = db.Column(db.Float, nullable=True)
     closure_notes = db.Column(db.Text, nullable=True)

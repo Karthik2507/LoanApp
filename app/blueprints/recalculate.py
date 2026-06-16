@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.models import Loan, RecalculationHistory, ActivityLog
 from app.forms import RecalcForm
-from app.utils import recalc_unpaid_with_new_rate, recalc_with_lumpsum, emi_amount, update_loan_progress
+from app.utils import recalc_unpaid_with_new_rate, recalc_with_lumpsum, emi_amount, update_loan_progress, calculate_interest_amount
 
 recalc_bp = Blueprint("recalc", __name__, url_prefix="/recalculate")
 
@@ -42,6 +42,7 @@ def index():
         ("RATE", "Interest Rate Change"),
         ("TENURE", "Tenure Change"),
         ("EXTRA", "Extra Monthly Payment"),
+        ("DAYS", "Interest Calculation Days Change"),
     ]
     if loan and loan.balloon_date:
         choices.append(("CLEAR_BALLOON", "Clear Balloon date"))
@@ -55,6 +56,12 @@ def index():
             recalc_unpaid_with_new_rate(loan, form.new_rate.data, form.effective_date.data or date.today())
             loan.interest_rate = form.new_rate.data
             summary = f"Rate changed to {form.new_rate.data}%"
+        elif rtype == "DAYS" and form.new_days.data:
+            from app.blueprints.loans import recalculate_unpaid_schedules
+            loan.interest_calculation_days = form.new_days.data
+            db.session.flush()
+            recalculate_unpaid_schedules(loan)
+            summary = f"Interest calculation days changed to {form.new_days.data}"
         elif rtype == "TENURE" and form.new_tenure.data:
             # rebuild unpaid stretched/compressed to new tenure
             unpaid = sorted([s for s in loan.schedules if s.payment_status != "Paid"], key=lambda x: x.month_index)
@@ -62,7 +69,6 @@ def index():
                 remaining = unpaid[0].remaining_balance + unpaid[0].principal  # principal before this installment
                 # simpler: recalc using current remaining_balance of loan
                 remaining = loan.remaining_balance
-                monthly_rate = (loan.interest_rate / 100.0) / 12.0
                 new_emi = emi_amount(remaining, loan.interest_rate, form.new_tenure.data)
                 # Truncate or extend schedule rows in-place (recreate)
                 # delete existing unpaid rows
@@ -74,14 +80,16 @@ def index():
                     db.session.delete(s)
                 db.session.flush()
                 rem = remaining
+                convention = getattr(loan, 'interest_calculation_days', '360') or '360'
                 for i in range(1, form.new_tenure.data + 1):
-                    interest = max(round(rem * monthly_rate, 2), 0.0)
+                    pay_date = start_date + relativedelta(months=i-1)
+                    prev_date = pay_date - relativedelta(months=1)
+                    interest = calculate_interest_amount(rem, loan.interest_rate, prev_date, pay_date, convention)
                     principal = round(new_emi - interest, 2)
                     if i == form.new_tenure.data or principal >= rem:
                         principal = round(rem, 2)
                         emi = round(principal + interest, 2)
                         rem = 0.0
-                        pay_date = start_date + relativedelta(months=i-1)
                         db.session.add(Schedule(loan_id=loan.id, month_index=start_idx + i,
                                                 payment_date=pay_date, emi=emi, principal=principal,
                                                 interest=interest, remaining_balance=0.0, is_revised=True))
@@ -99,11 +107,12 @@ def index():
         elif rtype == "EXTRA" and form.extra_amount.data:
             # apply extra monthly: reduce EMI's effective principal each month
             unpaid = sorted([s for s in loan.schedules if s.payment_status != "Paid"], key=lambda x: x.month_index)
-            monthly_rate = (loan.interest_rate / 100.0) / 12.0
             rem = loan.remaining_balance
             cleared_at = None
+            convention = getattr(loan, 'interest_calculation_days', '360') or '360'
             for s in unpaid:
-                interest = round(rem * monthly_rate, 2)
+                prev_date = s.payment_date - relativedelta(months=1)
+                interest = calculate_interest_amount(rem, loan.interest_rate, prev_date, s.payment_date, convention)
                 principal = round((s.emi - interest) + form.extra_amount.data, 2)
                 if principal >= rem:
                     principal = round(rem, 2)

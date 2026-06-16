@@ -69,5 +69,16 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        # Safe alteration to add interest_calculation_days column if it doesn't exist
+        try:
+            db.session.execute(db.text("SELECT interest_calculation_days FROM loans LIMIT 1"))
+        except Exception:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text("ALTER TABLE loans ADD COLUMN interest_calculation_days VARCHAR(20) DEFAULT '360'"))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error during schema migration: {e}")
 
     return app

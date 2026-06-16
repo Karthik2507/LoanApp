@@ -32,6 +32,7 @@
         <div class="form-row"><label>New Rate (%)</label>{{ form.new_rate() }}</div>
         <div class="form-row"><label>New Tenure (months)</label>{{ form.new_tenure() }}</div>
         <div class="form-row"><label>Extra Amount</label>{{ form.extra_amount() }}</div>
+        <div class="form-row"><label>New Interest Calculation Days</label>{{ form.new_days(style="padding:8px 12px;border:1px solid var(--slate-200);border-radius:10px;width:100%") }}</div>
         <div class="form-row"><label>Effective Date</label>{{ form.effective_date() }}</div>
       </div>
       <button class="btn" type="submit"><i data-lucide="calculator"></i> Recalculate</button>
@@ -45,6 +46,17 @@
       <tr><td>Tenure</td><td>{{ loan.tenure_months }} months</td></tr>
       <tr><td>Remaining</td><td>{{ loan.remaining_balance|money }}</td></tr>
       <tr><td>Completion</td><td>{{ '%.0f'|format(loan.completion_percentage) }}%</td></tr>
+      <tr><td>Calculation Days</td>
+          <td>
+            {% if loan.interest_calculation_days == '365' %}
+              365 Days (Actual/365)
+            {% elif loan.interest_calculation_days == '360_actual' %}
+              360 Days (Actual/360)
+            {% else %}
+              360 Days (Flat/30/360)
+            {% endif %}
+          </td>
+      </tr>
     </table>
   </div>
 </div>
@@ -142,7 +154,8 @@
   "unpaid_interest_remaining": {{ unpaid_interest if loan else 0 }},
   "unpaid_tenure_remaining": {{ unpaid_tenure if loan else 0 }},
   "interest_rate": {{ loan.interest_rate if loan else 0 }},
-  "standard_emi": {{ standard_emi if loan else 0 }}
+  "standard_emi": {{ standard_emi if loan else 0 }},
+  "interest_calculation_days": "{{ loan.interest_calculation_days or '360' }}"
 }
 </script>
 {% endblock %}
@@ -156,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const rateRow = document.getElementById('new_rate').closest('.form-row');
         const tenureRow = document.getElementById('new_tenure').closest('.form-row');
         const extraRow = document.getElementById('extra_amount').closest('.form-row');
+        const daysRow = document.getElementById('new_days').closest('.form-row');
         const dateRow = document.getElementById('effective_date').closest('.form-row');
 
         function updateFieldVisibility() {
@@ -163,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
             rateRow.style.display = 'none';
             tenureRow.style.display = 'none';
             extraRow.style.display = 'none';
+            daysRow.style.display = 'none';
             dateRow.style.display = 'none';
 
             if (selectedType === 'RATE') {
@@ -172,6 +187,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 tenureRow.style.display = '';
             } else if (selectedType === 'EXTRA') {
                 extraRow.style.display = '';
+            } else if (selectedType === 'DAYS') {
+                daysRow.style.display = '';
             }
         }
         recalcTypeSelect.addEventListener('change', updateFieldVisibility);
@@ -295,10 +312,24 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
+    const interestDays = loanData.interest_calculation_days || '360';
+    function getInterest(principal, rate, monthIndex) {
+      if (interestDays === '365' || interestDays === '360_actual') {
+        let prevDate = new Date();
+        prevDate.setMonth(prevDate.getMonth() + monthIndex - 1);
+        let payDate = new Date();
+        payDate.setMonth(payDate.getMonth() + monthIndex);
+        let days = Math.round((payDate - prevDate) / (1000 * 60 * 60 * 24));
+        let yearBasis = interestDays === '365' ? 365.0 : 360.0;
+        return Math.max(roundTo2(principal * (rate / 100.0) * (days / yearBasis)), 0);
+      } else {
+        return Math.max(roundTo2(principal * ((rate / 100.0) / 12.0)), 0);
+      }
+    }
+
     function updateSandboxProjections() {
       const extra = parseFloat(sandboxExtraInput.value || 0);
       const lumpsum = parseFloat(sandboxLumpsumInput.value || 0);
-      const r = (rate / 100.0) / 12.0;
 
       // 1. Standard Path Trajectory
       let standardPath = [balance];
@@ -307,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let interestStandard = 0;
       while (remStandard > 0 && mStandard < 600) {
         mStandard++;
-        const interest = Math.max(roundTo2(remStandard * r), 0);
+        const interest = getInterest(remStandard, rate, mStandard);
         let principalComp = roundTo2(standardEmi - interest);
         interestStandard += interest;
         if (principalComp >= remStandard) {
@@ -325,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let interestExtra = 0;
       while (remExtra > 0 && mExtra < 600) {
         mExtra++;
-        const interest = Math.max(roundTo2(remExtra * r), 0);
+        const interest = getInterest(remExtra, rate, mExtra);
         let principalComp = roundTo2((standardEmi - interest) + extra);
         interestExtra += interest;
         if (principalComp >= remExtra) {
@@ -344,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let interestLumpsum = 0;
       while (remLumpsum > 0 && mLumpsum < 600) {
         mLumpsum++;
-        const interest = Math.max(roundTo2(remLumpsum * r), 0);
+        const interest = getInterest(remLumpsum, rate, mLumpsum);
         let principalComp = roundTo2(standardEmi - interest);
         interestLumpsum += interest;
         if (principalComp >= remLumpsum) {

@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, jsonify, url_for
 from flask_login import login_required, current_user
 from dateutil.relativedelta import relativedelta
 from app.models import Loan, Setting
-from app.utils import portfolio_health_score, emi_amount, format_currency
+from app.utils import portfolio_health_score, emi_amount, format_currency, calculate_interest_amount
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -160,14 +160,17 @@ def _charts(loans):
                 )
                 extra = round(std_emi * 0.1, -1)
                 if extra >= 50:
-                    monthly_rate = (target_loan.interest_rate / 100.0) / 12.0
                     rem_extra = target_loan.remaining_balance
                     months_with_extra = 0
                     total_interest_extra = 0.0
                     total_interest_normal = sum(s.interest for s in target_loan.schedules if s.payment_status != "Paid")
+                    unpaid_schedules = sorted([s for s in target_loan.schedules if s.payment_status != "Paid"], key=lambda s: s.month_index)
+                    convention = getattr(target_loan, 'interest_calculation_days', '360') or '360'
                     
-                    for m in range(1, unpaid_count + 1):
-                        interest = max(round(rem_extra * monthly_rate, 2), 0.0)
+                    for m, s in enumerate(unpaid_schedules, start=1):
+                        pay_date = s.payment_date
+                        prev_date = pay_date - relativedelta(months=1)
+                        interest = calculate_interest_amount(rem_extra, target_loan.interest_rate, prev_date, pay_date, convention)
                         principal_comp = round((std_emi - interest) + extra, 2)
                         if principal_comp >= rem_extra:
                             total_interest_extra += interest

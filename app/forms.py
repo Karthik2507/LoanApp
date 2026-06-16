@@ -52,6 +52,11 @@ class LoanForm(FlaskForm):
     start_date = DateField("Start Date", validators=[DataRequired()])
     tenure_months = FloatField("Tenure", validators=[DataRequired(), NumberRange(min=0.01, max=600)])
     tenure_unit = SelectField("Tenure Unit", choices=[("months", "Months"), ("years", "Years")], default="months")
+    interest_calculation_days = SelectField("Interest Calculation Days", choices=[
+        ("365", "365 Days (Actual/365)"),
+        ("360", "360 Days (Flat/30/360)"),
+        ("360_actual", "360 Days (Actual/360)")
+    ], default="365")
     balloon_date = DateField("Balloon Date", validators=[Optional()])
     balloon_amount = FloatField("Balloon Amount", validators=[Optional(), NumberRange(min=0)])
     notes = TextAreaField("Notes", validators=[Optional(), Length(max=1000)])
@@ -90,6 +95,11 @@ class RecalcForm(FlaskForm):
     new_rate = FloatField("New Rate (%)", validators=[Optional(), NumberRange(min=0, max=100)])
     new_tenure = IntegerField("New Tenure (months)", validators=[Optional(), NumberRange(min=1, max=600)])
     extra_amount = FloatField("Extra Amount", validators=[Optional(), NumberRange(min=0)])
+    new_days = SelectField("New Interest Calculation Days", choices=[
+        ("365", "365 Days (Actual/365)"),
+        ("360", "360 Days (Flat/30/360)"),
+        ("360_actual", "360 Days (Actual/360)")
+    ], validators=[Optional()])
     effective_date = DateField("Effective Date", validators=[Optional()])
     submit = SubmitField("Recalculate")
 
