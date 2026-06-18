@@ -487,47 +487,45 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     if (bulkMarkPaidBtn) {
-        bulkMarkPaidBtn.addEventListener('click', async function() {
+        bulkMarkPaidBtn.addEventListener('click', function() {
             const checked = Array.from(document.querySelectorAll('.schedule-checkbox')).filter(cb => cb.checked);
             if (checked.length === 0) return;
             
-            if (!confirm(`Mark ${checked.length} selected installments as paid?`)) {
-                return;
-            }
-            
-            const ids = checked.map(cb => cb.dataset.id);
-            const csrfToken = "{{ csrf_token() }}";
-            
-            const origText = bulkMarkPaidBtn.innerHTML;
-            bulkMarkPaidBtn.innerHTML = '<div class="spinner" style="width:12px;height:12px;border-width:1.5px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div> Processing...';
-            bulkMarkPaidBtn.setAttribute('disabled', 'true');
-            
-            try {
-                {% if loan %}
-                const res = await fetch(`/schedule/{{ loan.id }}/bulk-mark-paid`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({ schedule_ids: ids })
-                });
-                const result = await res.json();
-                if (result.ok) {
-                    window.location.reload();
-                } else {
-                    alert("Bulk payment failed: " + (result.message || "Unknown error"));
+            openConfirm(`Mark ${checked.length} selected installments as paid?`, async function() {
+                const ids = checked.map(cb => cb.dataset.id);
+                const csrfToken = "{{ csrf_token() }}";
+                
+                const origText = bulkMarkPaidBtn.innerHTML;
+                bulkMarkPaidBtn.innerHTML = '<div class="spinner" style="width:12px;height:12px;border-width:1.5px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div> Processing...';
+                bulkMarkPaidBtn.setAttribute('disabled', 'true');
+                
+                try {
+                    {% if loan %}
+                    const res = await fetch(`/schedule/{{ loan.id }}/bulk-mark-paid`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ schedule_ids: ids })
+                    });
+                    const result = await res.json();
+                    if (result.ok) {
+                        window.location.reload();
+                    } else {
+                        alert("Bulk payment failed: " + (result.message || "Unknown error"));
+                        bulkMarkPaidBtn.innerHTML = origText;
+                        bulkMarkPaidBtn.removeAttribute('disabled');
+                    }
+                    {% endif %}
+                } catch (err) {
+                    console.error(err);
+                    alert("Error sending bulk payment request.");
                     bulkMarkPaidBtn.innerHTML = origText;
                     bulkMarkPaidBtn.removeAttribute('disabled');
                 }
-                {% endif %}
-            } catch (err) {
-                console.error(err);
-                alert("Error sending bulk payment request.");
-                bulkMarkPaidBtn.innerHTML = origText;
-                bulkMarkPaidBtn.removeAttribute('disabled');
-            }
+            });
         });
     }
 });
