@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Users · Admin Portal{% endblock %}
+{% block crumbs %}Admin Portal / <strong>Users</strong>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="title-block">
+    <h1>System Users</h1>
+    <div class="sub">Manage user accounts, roles, and feature access permissions.</div>
+  </div>
+
+  <div class="actions">
+    <a href="{{ url_for('super_admin.create_admin') }}" class="btn">
+      <i data-lucide="shield-alert"></i> Create Super Admin
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Registered User Accounts</h3>
+    <span style="font-size:12px;color:var(--slate-500)">
+      {{ users|length }} total user(s) (excluding you)
+    </span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Full Name</th>
+          <th>Username</th>
+          <th>Email Address</th>
+          <th>Role</th>
+          <th>Created On</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><strong>#{{ u.id }}</strong></td>
+          <td>{{ u.full_name }}</td>
+          <td><code>{{ u.username }}</code></td>
+          <td>{{ u.email }}</td>
+          <td>
+            {% if u.role == 'super_admin' %}
+              <span class="badge Active" style="background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe;">
+                <i data-lucide="shield" style="width:11px; height:11px; margin-right:4px;"></i> Super Admin
+              </span>
+            {% else %}
+              <span class="badge Pending">Admin</span>
+            {% endif %}
+          </td>
+          <td>{{ u.created_at|fdate if u.created_at else '—' }}</td>
+          <td style="text-align: right;">
+            {% if u.role == 'super_admin' %}
+              <span style="font-size:12px; color:var(--text-muted); font-style:italic;">Full Access Granted</span>
+            {% else %}
+              <a href="{{ url_for('super_admin.permissions', user_pk=u.id) }}" class="btn secondary sm" style="gap:4px;">
+                <i data-lucide="sliders" style="width:13px; height:13px;"></i> Configure Permissions
+              </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="empty">
+            <i data-lucide="users-2"></i>
+            <h3>No other users found</h3>
+            <p>Any newly registered users will show up here.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

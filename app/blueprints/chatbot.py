@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.models import Loan, Schedule, ActivityLog, LoanAuditLog, Setting, RecalculationHistory
 from app.utils import generate_amortization, update_loan_progress, emi_amount, recalc_unpaid_with_new_rate, recalc_with_lumpsum, calculate_interest_amount
+from app.decorators import permission_required
 
 
 chatbot_bp = Blueprint("chatbot", __name__, url_prefix="/chatbot")
@@ -386,6 +387,7 @@ def apply_recalculation_change(loan_id: str, extra_monthly: float = 0.0, lumpsum
 
 @chatbot_bp.route("/proactive-check", methods=["GET"])
 @login_required
+@permission_required("feature_chatbot")
 def proactive_check():
     from datetime import date, timedelta
     from app.models import Setting
@@ -486,6 +488,7 @@ Always keep your tone professional, helpful, and concise.
 
 @chatbot_bp.route("/chat", methods=["POST"])
 @login_required
+@permission_required("feature_chatbot")
 def chat():
     # 1. Resolve Gemini API Key
     api_key = os.environ.get("GEMINI_API_KEY")

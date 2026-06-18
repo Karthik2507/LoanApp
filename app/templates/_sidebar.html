@@ -9,13 +9,29 @@
   </div>
   <nav>
     <div class="group-label">Workspace</div>
+    {% if current_user.has_permission('page_dashboard') %}
     <a href="{{ url_for('dashboard.index') }}" class="{{ 'active' if ep.startswith('dashboard.') else '' }}"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+    {% endif %}
+    {% if current_user.has_permission('page_loans') %}
     <a href="{{ url_for('loans.list_loans') }}" class="{{ 'active' if ep.startswith('loans.') else '' }}"><i data-lucide="wallet"></i> Loans</a>
+    {% endif %}
+    {% if current_user.has_permission('page_schedule') %}
     <a href="{{ url_for('schedule.index') }}" class="{{ 'active' if ep.startswith('schedule.') else '' }}"><i data-lucide="calendar-days"></i> Schedule</a>
+    {% endif %}
+    {% if current_user.has_permission('page_recalculate') %}
     <a href="{{ url_for('recalc.index') }}" class="{{ 'active' if ep.startswith('recalc.') else '' }}"><i data-lucide="calculator"></i> Recalculate</a>
+    {% endif %}
+    {% if current_user.has_permission('page_reports') %}
     <a href="{{ url_for('reports.index') }}" class="{{ 'active' if ep.startswith('reports.') else '' }}"><i data-lucide="file-bar-chart-2"></i> Reports</a>
+    {% endif %}
     <div class="group-label">Account</div>
+    {% if current_user.has_permission('page_settings') %}
     <a href="{{ url_for('settings.index') }}" class="{{ 'active' if ep.startswith('settings.') else '' }}"><i data-lucide="settings"></i> Settings</a>
+    {% endif %}
+    {% if current_user.is_super_admin %}
+    <div class="group-label">Administration</div>
+    <a href="{{ url_for('super_admin.users') }}" class="{{ 'active' if ep.startswith('super_admin.') else '' }}"><i data-lucide="shield-check"></i> Admin Portal</a>
+    {% endif %}
   </nav>
   <div class="logout-area">
     <a href="{{ url_for('auth.logout') }}"><i data-lucide="log-out"></i> Logout</a>

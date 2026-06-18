@@ -171,19 +171,31 @@
     <div class="card-header">
       <h3>Loan Distribution</h3><span style="font-size:12px;color:var(--slate-500)">By bank</span>
     </div>
+    {% if current_user.has_permission('chart_dashboard_dist') %}
     <div class="card-body"><canvas id="distChart" height="140"></canvas></div>
+    {% else %}
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;height:140px;color:var(--text-muted);"><i data-lucide="lock" style="width:14px;height:14px;margin-right:6px"></i> Restricted</div>
+    {% endif %}
   </div>
   <div class="card">
     <div class="card-header">
       <h3>Category Distribution</h3><span style="font-size:12px;color:var(--slate-500)">By category</span>
     </div>
+    {% if current_user.has_permission('chart_dashboard_cat') %}
     <div class="card-body"><canvas id="catChart" height="140"></canvas></div>
+    {% else %}
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;height:140px;color:var(--text-muted);"><i data-lucide="lock" style="width:14px;height:14px;margin-right:6px"></i> Restricted</div>
+    {% endif %}
   </div>
   <div class="card">
     <div class="card-header">
       <h3>Cash Flow Projection</h3><span style="font-size:12px;color:var(--slate-500)">Next 12 months</span>
     </div>
+    {% if current_user.has_permission('chart_dashboard_cash') %}
     <div class="card-body"><canvas id="cashChart" height="140"></canvas></div>
+    {% else %}
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;height:140px;color:var(--text-muted);"><i data-lucide="lock" style="width:14px;height:14px;margin-right:6px"></i> Restricted</div>
+    {% endif %}
   </div>
 </div>
 
@@ -192,19 +204,31 @@
     <div class="card-header">
       <h3>Paid vs Outstanding</h3><span style="font-size:12px;color:var(--slate-500)">Overview</span>
     </div>
+    {% if current_user.has_permission('chart_dashboard_paid') %}
     <div class="card-body"><canvas id="paidOutstandingChart" height="140"></canvas></div>
+    {% else %}
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;height:140px;color:var(--text-muted);"><i data-lucide="lock" style="width:14px;height:14px;margin-right:6px"></i> Restricted</div>
+    {% endif %}
   </div>
   <div class="card">
     <div class="card-header">
       <h3>Debt Reduction Trend</h3><span style="font-size:12px;color:var(--slate-500)">Projected</span>
     </div>
+    {% if current_user.has_permission('chart_dashboard_debt') %}
     <div class="card-body"><canvas id="debtChart" height="140"></canvas></div>
+    {% else %}
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;height:140px;color:var(--text-muted);"><i data-lucide="lock" style="width:14px;height:14px;margin-right:6px"></i> Restricted</div>
+    {% endif %}
   </div>
   <div class="card">
     <div class="card-header">
       <h3>Interest Burden</h3><span style="font-size:12px;color:var(--slate-500)">Financials</span>
     </div>
+    {% if current_user.has_permission('chart_dashboard_burden') %}
     <div class="card-body"><canvas id="burdenChart" height="140"></canvas></div>
+    {% else %}
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;height:140px;color:var(--text-muted);"><i data-lucide="lock" style="width:14px;height:14px;margin-right:6px"></i> Restricted</div>
+    {% endif %}
   </div>
 </div>
 
@@ -214,35 +238,41 @@
       <h3>Balloon Risk</h3>
     </div>
     <div class="card-body">
-      {% if charts.balloon %}
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>Loan</th>
-            <th>Due</th>
-            <th class="num">Days</th>
-            <th class="num">Amount</th>
-            <th>Risk</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for b in charts.balloon %}
-          <tr>
-            <td><strong>{{ b.loan_id }}</strong><br><span style="color:var(--slate-500);font-size:12px">{{ b.loan_name
-                }}</span></td>
-            <td>{{ b.due }}</td>
-            <td class="num">{{ b.days }}</td>
-            <td class="num">{{ b.amount|money }}</td>
-            <td><span
-                class="badge {{ 'Overdue' if b.risk=='High' else ('Pending' if b.risk=='Medium' else 'Active') }}">{{
-                b.risk }}</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}<div class="empty"><i data-lucide="shield-check"></i>
-        <p>No upcoming balloon payments.</p>
-      </div>{% endif %}
+      {% if current_user.has_permission('table_dashboard_loans') %}
+        {% if charts.balloon %}
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Loan</th>
+              <th>Due</th>
+              <th class="num">Days</th>
+              <th class="num">Amount</th>
+              <th>Risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in charts.balloon %}
+            <tr>
+              <td><strong>{{ b.loan_id }}</strong><br><span style="color:var(--slate-500);font-size:12px">{{ b.loan_name
+                  }}</span></td>
+              <td>{{ b.due }}</td>
+              <td class="num">{{ b.days }}</td>
+              <td class="num">{{ b.amount|money }}</td>
+              <td><span
+                  class="badge {{ 'Overdue' if b.risk=='High' else ('Pending' if b.risk=='Medium' else 'Active') }}">{{
+                  b.risk }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}<div class="empty"><i data-lucide="shield-check"></i>
+          <p>No upcoming balloon payments.</p>
+        </div>{% endif %}
+      {% else %}
+        <div class="empty"><i data-lucide="lock"></i>
+          <p>Restricted by Admin.</p>
+        </div>
+      {% endif %}
     </div>
   </div>
   <div class="card">
@@ -250,22 +280,28 @@
       <h3>Completion Forecast</h3>
     </div>
     <div class="card-body">
-      {% if charts.forecast %}
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>Loan</th>
-            <th>Projected closure</th>
-          </tr>
-        </thead>
-        <tbody>{% for f in charts.forecast %}<tr>
-            <td>{{ f.loan }}</td>
-            <td>{{ f.closes }}</td>
-          </tr>{% endfor %}</tbody>
-      </table>
-      {% else %}<div class="empty"><i data-lucide="flag"></i>
-        <p>No active loans to forecast.</p>
-      </div>{% endif %}
+      {% if current_user.has_permission('table_dashboard_loans') %}
+        {% if charts.forecast %}
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Loan</th>
+              <th>Projected closure</th>
+            </tr>
+          </thead>
+          <tbody>{% for f in charts.forecast %}<tr>
+              <td>{{ f.loan }}</td>
+              <td>{{ f.closes }}</td>
+            </tr>{% endfor %}</tbody>
+        </table>
+        {% else %}<div class="empty"><i data-lucide="flag"></i>
+          <p>No active loans to forecast.</p>
+        </div>{% endif %}
+      {% else %}
+        <div class="empty"><i data-lucide="lock"></i>
+          <p>Restricted by Admin.</p>
+        </div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -287,76 +323,94 @@
       const bankLabels = Object.keys(chartsData.by_bank);
       const bankValues = Object.values(chartsData.by_bank);
       if (dist) dist.destroy();
-      dist = new Chart(ctx('distChart'), {
-        type: 'doughnut',
-        data: { labels: bankLabels, datasets: [{ data: bankValues, backgroundColor: palette, borderWidth: 0 }] },
-        options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '62%', maintainAspectRatio: false }
-      });
+      const distCanvas = ctx('distChart');
+      if (distCanvas) {
+        dist = new Chart(distCanvas, {
+          type: 'doughnut',
+          data: { labels: bankLabels, datasets: [{ data: bankValues, backgroundColor: palette, borderWidth: 0 }] },
+          options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '62%', maintainAspectRatio: false }
+        });
+      }
 
       // 2. Category Distribution
       const catLabels = Object.keys(chartsData.by_cat);
       const catValues = Object.values(chartsData.by_cat);
       if (cat) cat.destroy();
-      cat = new Chart(ctx('catChart'), {
-        type: 'doughnut',
-        data: { labels: catLabels, datasets: [{ data: catValues, backgroundColor: palette, borderWidth: 0 }] },
-        options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '62%', maintainAspectRatio: false }
-      });
+      const catCanvas = ctx('catChart');
+      if (catCanvas) {
+        cat = new Chart(catCanvas, {
+          type: 'doughnut',
+          data: { labels: catLabels, datasets: [{ data: catValues, backgroundColor: palette, borderWidth: 0 }] },
+          options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '62%', maintainAspectRatio: false }
+        });
+      }
 
       // 3. Cash Flow
       if (cash) cash.destroy();
-      cash = new Chart(ctx('cashChart'), {
-        type: 'line',
-        data: {
-          labels: chartsData.cashflow.map(c => c.month), datasets: [{
-            label: 'EMI Due', data: chartsData.cashflow.map(c => c.amount),
-            borderColor: '#1D4ED8', backgroundColor: 'rgba(29,78,216,.10)', tension: .35, fill: true, pointRadius: 3
-          }]
-        },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
-      });
+      const cashCanvas = ctx('cashChart');
+      if (cashCanvas) {
+        cash = new Chart(cashCanvas, {
+          type: 'line',
+          data: {
+            labels: chartsData.cashflow.map(c => c.month), datasets: [{
+              label: 'EMI Due', data: chartsData.cashflow.map(c => c.amount),
+              borderColor: '#1D4ED8', backgroundColor: 'rgba(29,78,216,.10)', tension: .35, fill: true, pointRadius: 3
+            }]
+          },
+          options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
+        });
+      }
 
       // 4. Paid vs Outstanding
       if (paidOutstanding) paidOutstanding.destroy();
-      paidOutstanding = new Chart(ctx('paidOutstandingChart'), {
-        type: 'pie',
-        data: {
-          labels: ['Total Paid', 'Outstanding'],
-          datasets: [{
-            data: [statsData.total_paid, statsData.outstanding],
-            backgroundColor: ['#10B981', '#F59E0B'],
-            borderWidth: 0
-          }]
-        },
-        options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }, maintainAspectRatio: false }
-      });
+      const paidOutstandingCanvas = ctx('paidOutstandingChart');
+      if (paidOutstandingCanvas) {
+        paidOutstanding = new Chart(paidOutstandingCanvas, {
+          type: 'pie',
+          data: {
+            labels: ['Total Paid', 'Outstanding'],
+            datasets: [{
+              data: [statsData.total_paid, statsData.outstanding],
+              backgroundColor: ['#10B981', '#F59E0B'],
+              borderWidth: 0
+            }]
+          },
+          options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }, maintainAspectRatio: false }
+        });
+      }
 
       // 5. Debt Reduction
       if (debt) debt.destroy();
-      debt = new Chart(ctx('debtChart'), {
-        type: 'line',
-        data: {
-          labels: chartsData.debt_trend.map(c => c.month), datasets: [{
-            label: 'Remaining', data: chartsData.debt_trend.map(c => c.remaining),
-            borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,.18)', tension: .35, fill: true, pointRadius: 3
-          }]
-        },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
-      });
+      const debtCanvas = ctx('debtChart');
+      if (debtCanvas) {
+        debt = new Chart(debtCanvas, {
+          type: 'line',
+          data: {
+            labels: chartsData.debt_trend.map(c => c.month), datasets: [{
+              label: 'Remaining', data: chartsData.debt_trend.map(c => c.remaining),
+              borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,.18)', tension: .35, fill: true, pointRadius: 3
+            }]
+          },
+          options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
+        });
+      }
 
       // 6. Interest Burden
       if (burden) burden.destroy();
-      burden = new Chart(ctx('burdenChart'), {
-        type: 'bar',
-        data: {
-          labels: ['Principal', 'Interest', 'Saved'],
-          datasets: [{
-            data: [chartsData.interest_burden.principal_remaining, chartsData.interest_burden.interest_remaining, chartsData.interest_burden.interest_saved],
-            backgroundColor: ['#1D4ED8', '#F59E0B', '#10B981'], borderRadius: 8, barThickness: 24
-          }]
-        },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
-      });
+      const burdenCanvas = ctx('burdenChart');
+      if (burdenCanvas) {
+        burden = new Chart(burdenCanvas, {
+          type: 'bar',
+          data: {
+            labels: ['Principal', 'Interest', 'Saved'],
+            datasets: [{
+              data: [chartsData.interest_burden.principal_remaining, chartsData.interest_burden.interest_remaining, chartsData.interest_burden.interest_saved],
+              backgroundColor: ['#1D4ED8', '#F59E0B', '#10B981'], borderRadius: 8, barThickness: 24
+            }]
+          },
+          options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
+        });
+      }
     }
     function update(payload) {
       Object.entries(payload.stats).forEach(([k, v]) => {

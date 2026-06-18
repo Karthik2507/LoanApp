@@ -125,7 +125,11 @@
     <div class="grid grid-2" style="margin-top: 20px;">
       <div class="card pad">
         <h4 style="margin-bottom: 12px; font-weight: 600;">Amortization Trajectory Comparison</h4>
+        {% if current_user.has_permission('chart_recalc_sandbox') %}
         <div style="height: 250px; position: relative;"><canvas id="sandboxCompareChart"></canvas></div>
+        {% else %}
+        <div style="display:flex;align-items:center;justify-content:center;height:250px;color:var(--text-muted);"><i data-lucide="lock" style="width:14px;height:14px;margin-right:6px"></i> Restricted</div>
+        {% endif %}
       </div>
       <div class="card pad secondary-card" style="margin: 0; display: flex; flex-direction: column; justify-content: space-between;">
         <div>

@@ -20,6 +20,7 @@
 
 <div class="card" style="margin-bottom:16px">
   <div class="card-header"><h3>Loan Summary</h3></div>
+  {% if current_user.has_permission('table_reports_activity') %}
   <div class="table-wrap">
     <table class="tbl">
       <thead><tr><th>ID</th><th>Name</th><th>Bank</th><th>Status</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">Remaining</th><th class="num">Completion</th></tr></thead>
@@ -31,6 +32,13 @@
       {% endfor %}</tbody>
     </table>
   </div>
+  {% else %}
+  <div class="card-body empty">
+    <i data-lucide="lock"></i>
+    <h3>Table Restricted</h3>
+    <p>You do not have permission to view the Loan Summary table.</p>
+  </div>
+  {% endif %}
 </div>
 
 <div class="grid grid-2" style="margin-bottom:16px">
@@ -286,14 +294,21 @@
       <h3>Lender Risk Concentration</h3>
     </div>
     <div class="card-body" style="padding:0; flex-grow:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-      {% if by_bank %}
-        <div style="width:100%; height:200px; position:relative; margin:0 auto;">
-          <canvas id="riskChart"></canvas>
-        </div>
+      {% if current_user.has_permission('chart_reports_risk') %}
+        {% if by_bank %}
+          <div style="width:100%; height:200px; position:relative; margin:0 auto;">
+            <canvas id="riskChart"></canvas>
+          </div>
+        {% else %}
+          <div class="empty" style="padding:24px 0; width:100%;">
+            <i data-lucide="shield-alert"></i>
+            <p>No active loan data found for exposure report.</p>
+          </div>
+        {% endif %}
       {% else %}
         <div class="empty" style="padding:24px 0; width:100%;">
-          <i data-lucide="shield-alert"></i>
-          <p>No active loan data found for exposure report.</p>
+          <i data-lucide="lock"></i>
+          <p>Restricted by Admin.</p>
         </div>
       {% endif %}
     </div>
@@ -304,19 +319,31 @@
   <div class="card">
     <div class="card-header"><h3>Balloon Report</h3></div>
     <div class="card-body">
-      {% if balloons %}
-      <table class="tbl"><thead><tr><th>Loan</th><th>Date</th><th class="num">Amount</th></tr></thead>
-      <tbody>{% for l in balloons %}<tr><td>{{ l.loan_id }}</td><td>{{ l.balloon_date|fdate }}</td><td class="num">{{ l.balloon_amount|money }}</td></tr>{% endfor %}</tbody></table>
-      {% else %}<div class="empty"><i data-lucide="shield-check"></i><p>No balloon loans.</p></div>{% endif %}
+      {% if current_user.has_permission('table_reports_activity') %}
+        {% if balloons %}
+        <table class="tbl"><thead><tr><th>Loan</th><th>Date</th><th class="num">Amount</th></tr></thead>
+        <tbody>{% for l in balloons %}<tr><td>{{ l.loan_id }}</td><td>{{ l.balloon_date|fdate }}</td><td class="num">{{ l.balloon_amount|money }}</td></tr>{% endfor %}</tbody></table>
+        {% else %}<div class="empty"><i data-lucide="shield-check"></i><p>No balloon loans.</p></div>{% endif %}
+      {% else %}
+        <div class="empty"><i data-lucide="lock"></i>
+          <p>Restricted by Admin.</p>
+        </div>
+      {% endif %}
     </div>
   </div>
   <div class="card">
     <div class="card-header"><h3>Closures</h3></div>
     <div class="card-body">
-      {% if closures %}
-      <table class="tbl"><thead><tr><th>Loan</th><th>Closed</th><th class="num">Final</th></tr></thead>
-      <tbody>{% for l in closures %}<tr><td>{{ l.loan_id }}</td><td>{{ l.closed_at|fdate }}</td><td class="num">{{ l.final_amount|money }}</td></tr>{% endfor %}</tbody></table>
-      {% else %}<div class="empty"><i data-lucide="check"></i><p>No closed loans yet.</p></div>{% endif %}
+      {% if current_user.has_permission('table_reports_activity') %}
+        {% if closures %}
+        <table class="tbl"><thead><tr><th>Loan</th><th>Closed</th><th class="num">Final</th></tr></thead>
+        <tbody>{% for l in closures %}<tr><td>{{ l.loan_id }}</td><td>{{ l.closed_at|fdate }}</td><td class="num">{{ l.final_amount|money }}</td></tr>{% endfor %}</tbody></table>
+        {% else %}<div class="empty"><i data-lucide="check"></i><p>No closed loans yet.</p></div>{% endif %}
+      {% else %}
+        <div class="empty"><i data-lucide="lock"></i>
+          <p>Restricted by Admin.</p>
+        </div>
+      {% endif %}
     </div>
   </div>
 </div>

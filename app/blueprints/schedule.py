@@ -5,6 +5,7 @@ from app import db
 from app.models import Loan, Schedule, PaymentHistory, ActivityLog, InterestRateHistory
 from app.forms import InterestRevisionForm
 from app.utils import update_loan_progress, recalc_unpaid_with_new_rate
+from app.decorators import permission_required
 
 schedule_bp = Blueprint("schedule", __name__, url_prefix="/schedule")
 
@@ -18,6 +19,7 @@ def _get_loan(loan_pk):
 
 @schedule_bp.route("/")
 @login_required
+@permission_required("page_schedule")
 def index():
     loans = current_user.loans.filter_by(is_archived=False).order_by(Loan.created_at.desc()).all()
     selected_id = request.args.get("loan_pk", type=int)
@@ -28,6 +30,7 @@ def index():
 
 @schedule_bp.route("/<int:loan_pk>")
 @login_required
+@permission_required("page_schedule")
 def view(loan_pk):
     loan = _get_loan(loan_pk)
     loans = current_user.loans.filter_by(is_archived=False).all()
@@ -136,6 +139,7 @@ def mark_all_past_paid(loan_pk):
 
 @schedule_bp.route("/<int:loan_pk>/annual-summary/csv")
 @login_required
+@permission_required("feature_downloads")
 def annual_summary_csv(loan_pk):
     import csv
     import io
@@ -181,6 +185,7 @@ def annual_summary_csv(loan_pk):
 
 @schedule_bp.route("/<int:loan_pk>/download/csv")
 @login_required
+@permission_required("feature_downloads")
 def download_csv(loan_pk):
     import csv
     import io
@@ -217,6 +222,7 @@ def download_csv(loan_pk):
 
 @schedule_bp.route("/<int:loan_pk>/download/pdf")
 @login_required
+@permission_required("feature_downloads")
 def download_pdf(loan_pk):
     import io
     from flask import Response

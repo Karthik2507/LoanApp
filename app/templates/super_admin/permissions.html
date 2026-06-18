@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Permissions: {{ user.username }} · Admin Portal{% endblock %}
+{% block crumbs %}Admin Portal / <a href="{{ url_for('super_admin.users') }}">Users</a> / <strong>Permissions</strong>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="title-block">
+    <h1>Configure Permissions</h1>
+    <div class="sub">Set feature access rules for user <strong>{{ user.full_name }}</strong> (<code>{{ user.username }}</code>).</div>
+  </div>
+  
+  <div class="actions">
+    <a href="{{ url_for('super_admin.users') }}" class="btn secondary">
+      <i data-lucide="arrow-left"></i> Back to Users
+    </a>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('super_admin.permissions', user_pk=user.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="grid grid-2" style="margin-bottom: 24px;">
+    {% for category, items in permissions_groups.items() %}
+    <div class="card">
+      <div class="card-header" style="background: var(--bg-hover);">
+        <h3>{{ category }} Permissions</h3>
+        <button type="button" class="btn ghost sm select-all-btn" data-category="{{ category|lower }}" style="padding: 2px 8px; font-size: 11px;">Toggle All</button>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          {% for key, label in items %}
+          <li class="permission-item" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border-light); transition: background-color 0.2s;">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-weight: 500; color: var(--text-title);">{{ label }}</span>
+              <span style="font-size: 11px; color: var(--text-muted);">Key: <code>{{ key }}</code></span>
+            </div>
+            <label class="switch-container" style="position: relative; display: inline-block; width: 44px; height: 22px;">
+              <input type="checkbox" name="allowed_permissions" value="{{ key }}" class="permission-cb {{ category|lower }}-cb" style="display:none;" {% if key in allowed_perms %}checked{% endif %}>
+              <span class="slider" style="position: absolute; cursor: pointer; inset: 0; background-color: var(--slate-300); border-radius: 34px; transition: .3s; border: 1px solid var(--border-color);"></span>
+            </label>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card pad" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
+    <a href="{{ url_for('super_admin.users') }}" class="btn secondary">Cancel</a>
+    <button type="submit" class="btn success">
+      <i data-lucide="save"></i> Save Permissions Configuration
+    </button>
+  </div>
+</form>
+
+<style>
+/* Custom Switch Slider Styling */
+.switch-container input:checked + .slider {
+  background-color: var(--emerald-600);
+}
+.switch-container input:checked + .slider:before {
+  transform: translateX(20px);
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 4px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: .3s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.permission-item:hover {
+  background-color: var(--bg-hover);
+}
+/* Focus & hover states for toggles */
+.switch-container:hover .slider {
+  filter: brightness(0.95);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Select/Toggle All logic helper
+    document.querySelectorAll('.select-all-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const cat = this.getAttribute('data-category');
+            const checkboxes = document.querySelectorAll('.' + cat + '-cb');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from dateutil.relativedelta import relativedelta
 from app.models import Loan, Setting
 from app.utils import portfolio_health_score, emi_amount, format_currency, calculate_interest_amount
+from app.decorators import permission_required
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -217,6 +218,7 @@ def _charts(loans):
 
 @dashboard_bp.route("/dashboard")
 @login_required
+@permission_required("page_dashboard")
 def index():
     loans = current_user.loans.filter_by(is_archived=False).all()
     stats = _stats(loans)
@@ -226,6 +228,7 @@ def index():
 
 @dashboard_bp.route("/api/dashboard/stats")
 @login_required
+@permission_required("page_dashboard")
 def stats_api():
     loans = current_user.loans.filter_by(is_archived=False).all()
     return jsonify({"stats": _stats(loans), "charts": _charts(loans)})

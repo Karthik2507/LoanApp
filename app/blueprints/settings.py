@@ -7,12 +7,14 @@ from flask_login import login_required, current_user, logout_user
 from app import db
 from app.models import User, ActivityLog
 from app.forms import ProfileForm, PreferencesForm, ChangePasswordForm
+from app.decorators import permission_required
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
 
 
 @settings_bp.route("/", methods=["GET", "POST"])
 @login_required
+@permission_required("page_settings")
 def index():
     from app.models import Setting
     profile_form = ProfileForm(obj=current_user)
@@ -160,6 +162,7 @@ def verify_sqlite_db(filepath):
 
 @settings_bp.route("/backup/download")
 @login_required
+@permission_required("feature_backup_restore")
 def download_backup():
     uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
     db_path = uri.replace("sqlite:///", "")
@@ -175,6 +178,7 @@ def download_backup():
 
 @settings_bp.route("/backup/restore", methods=["POST"])
 @login_required
+@permission_required("feature_backup_restore")
 def restore_backup():
     file = request.files.get("backup_file")
     if not file or file.filename == "":

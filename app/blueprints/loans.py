@@ -4,6 +4,7 @@ from app import db
 from app.models import Loan, Schedule, ActivityLog, LoanAuditLog, BalloonPayment
 from app.forms import LoanForm
 from app.utils import generate_amortization, update_loan_progress, emi_amount, calculate_interest_amount
+from app.decorators import permission_required
 
 loans_bp = Blueprint("loans", __name__, url_prefix="/loans")
 
@@ -127,6 +128,7 @@ def _get_loan_or_404(loan_pk):
 
 @loans_bp.route("/")
 @login_required
+@permission_required("page_loans")
 def list_loans():
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "")
@@ -309,6 +311,7 @@ def close(loan_pk):
 
 @loans_bp.route("/bulk-upload", methods=["POST"])
 @login_required
+@permission_required("feature_bulk_upload")
 def bulk_upload():
     from datetime import datetime, date
     

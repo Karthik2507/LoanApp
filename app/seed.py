@@ -5,11 +5,18 @@ from app.utils import generate_amortization, update_loan_progress
 
 
 def seed_demo_data():
-    if User.query.filter_by(username="demo").first():
-        print("Demo user already exists; skipping seed.")
+    demo_user = User.query.filter_by(username="demo").first()
+    if demo_user:
+        if demo_user.role != "super_admin":
+            demo_user.role = "super_admin"
+            db.session.commit()
+            print("Demo user role upgraded to super_admin.")
+        else:
+            print("Demo user already exists as super_admin; skipping seed.")
         return
     u = User(full_name="Demo User", username="demo", email="demo@loanledger.app",
-             preferred_currency="INR", preferred_date_format="%d %b %Y")
+             preferred_currency="INR", preferred_date_format="%d %b %Y",
+             role="super_admin")
     u.set_password("Demo@1234")
     db.session.add(u)
     db.session.flush()

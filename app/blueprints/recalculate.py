@@ -4,6 +4,7 @@ from app import db
 from app.models import Loan, RecalculationHistory, ActivityLog
 from app.forms import RecalcForm
 from app.utils import recalc_unpaid_with_new_rate, recalc_with_lumpsum, emi_amount, update_loan_progress, calculate_interest_amount
+from app.decorators import permission_required
 
 recalc_bp = Blueprint("recalc", __name__, url_prefix="/recalculate")
 
@@ -17,6 +18,7 @@ def _get_loan(loan_pk):
 
 @recalc_bp.route("/", methods=["GET", "POST"])
 @login_required
+@permission_required("page_recalculate")
 def index():
     loans = current_user.loans.filter_by(is_archived=False).all()
     selected_id = request.args.get("loan_pk", type=int)

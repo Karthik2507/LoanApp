@@ -7,12 +7,14 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from app.models import Loan
+from app.decorators import permission_required
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/reports")
 
 
 @reports_bp.route("/")
 @login_required
+@permission_required("page_reports")
 def index():
     from datetime import date
     from app.models import Schedule
@@ -156,6 +158,7 @@ def index():
 
 @reports_bp.route("/export.csv")
 @login_required
+@permission_required("feature_downloads")
 def export_csv():
     loans = current_user.loans.all()
     output = io.StringIO()
@@ -173,6 +176,7 @@ def export_csv():
 
 @reports_bp.route("/export.pdf")
 @login_required
+@permission_required("feature_downloads")
 def export_pdf():
     loans = current_user.loans.all()
     buf = io.BytesIO()

@@ -143,6 +143,7 @@
 
 <!-- Tab 3: History & Logs Panel -->
 <div class="tab-panel" id="tab-history" style="display:none;">
+  {% if current_user.has_permission('table_details_history') %}
   <div class="card pad">
     <h3 style="margin-bottom:16px">Activity & Audit Timeline</h3>
     {% if history %}
@@ -168,6 +169,13 @@
       </div>
     {% endif %}
   </div>
+  {% else %}
+  <div class="card pad empty">
+    <i data-lucide="lock"></i>
+    <h3>History Restricted</h3>
+    <p>You do not have permission to view the activity and audit timeline logs.</p>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 

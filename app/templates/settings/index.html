@@ -62,6 +62,7 @@
     </div>
 
     <!-- Database Backup & Restore Card -->
+    {% if current_user.has_permission('feature_backup_restore') %}
     <div class="card">
       <div class="card-header"><h3>Database Backup & Restore</h3></div>
       <div class="card-body" style="display:flex; flex-direction:column; gap:16px;">
@@ -90,6 +91,16 @@
         </div>
       </div>
     </div>
+    {% else %}
+    <div class="card">
+      <div class="card-header"><h3>Database Backup & Restore</h3></div>
+      <div class="card-body empty" style="padding: 24px;">
+        <i data-lucide="lock"></i>
+        <h3>Backup Restricted</h3>
+        <p>You do not have permission to backup or restore the database.</p>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <div style="display:flex; flex-direction:column; gap:16px;">

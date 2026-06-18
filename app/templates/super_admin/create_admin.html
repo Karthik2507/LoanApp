@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Create Super Admin · Admin Portal{% endblock %}
+{% block crumbs %}Admin Portal / <a href="{{ url_for('super_admin.users') }}">Users</a> / <strong>Create Super Admin</strong>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="title-block">
+    <h1>Create Super Admin</h1>
+    <div class="sub">Register a new Super Administrator account with unrestricted access.</div>
+  </div>
+  
+  <div class="actions">
+    <a href="{{ url_for('super_admin.users') }}" class="btn secondary">
+      <i data-lucide="arrow-left"></i> Cancel
+    </a>
+  </div>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+  <div class="card-header">
+    <h3>New Super Admin Details</h3>
+  </div>
+  
+  <div class="card-body">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      
+      <div class="form-row">
+        <label>Full Name</label>
+        {{ form.full_name() }}
+        {% for e in form.full_name.errors %}<div class="err">{{ e }}</div>{% endfor %}
+      </div>
+      
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Username</label>
+          {{ form.username() }}
+          {% for e in form.username.errors %}<div class="err">{{ e }}</div>{% endfor %}
+        </div>
+        
+        <div class="form-row">
+          <label>Email Address</label>
+          {{ form.email() }}
+          {% for e in form.email.errors %}<div class="err">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+      
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Password</label>
+          <div class="password-input-wrapper">
+            {{ form.password() }}
+            <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+              <i data-lucide="eye"></i>
+              <i data-lucide="eye-off"></i>
+            </button>
+          </div>
+          {% for e in form.password.errors %}<div class="err">{{ e }}</div>{% endfor %}
+        </div>
+        
+        <div class="form-row">
+          <label>Confirm Password</label>
+          <div class="password-input-wrapper">
+            {{ form.confirm() }}
+            <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+              <i data-lucide="eye"></i>
+              <i data-lucide="eye-off"></i>
+            </button>
+          </div>
+          {% for e in form.confirm.errors %}<div class="err">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+      
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+        <a href="{{ url_for('super_admin.users') }}" class="btn secondary">Cancel</a>
+        <button class="btn" type="submit">
+          <i data-lucide="user-plus"></i> Create Account
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

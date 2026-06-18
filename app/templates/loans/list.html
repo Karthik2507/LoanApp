@@ -186,6 +186,7 @@ html.dark .modal-overlay {
 <div class="page-header">
   <div class="title-block"><h1>Loans</h1><div class="sub">All your active and pending loans.</div></div>
   <div class="actions" style="display:flex; gap:10px;">
+    {% if current_user.has_permission('feature_bulk_upload') %}
     <div class="dropdown-container">
       <button class="btn secondary" id="bulkLoadBtn" type="button">
         <i data-lucide="upload-cloud"></i> Bulk Load <i data-lucide="chevron-down" style="width:16px;height:16px;margin-left:4px"></i>
@@ -199,6 +200,7 @@ html.dark .modal-overlay {
         </a>
       </div>
     </div>
+    {% endif %}
     <a href="{{ url_for('loans.archived') }}" class="btn secondary"><i data-lucide="archive"></i> Archived</a>
     <!-- <a href="{{ url_for('loans.add') }}" class="btn"><i data-lucide="plus"></i> Add Loan</a> -->
   </div>
@@ -216,6 +218,7 @@ html.dark .modal-overlay {
 </form>
 
 <div id="loansTableContainer">
+  {% if current_user.has_permission('table_loans_list') %}
   <div class="card">
     <div class="table-wrap">
     {% if pagination.items %}
@@ -270,8 +273,16 @@ html.dark .modal-overlay {
     {% endfor %}
   </div>
   {% endif %}
+  {% else %}
+  <div class="card empty">
+    <i data-lucide="lock"></i>
+    <h3>Table Restricted</h3>
+    <p>You do not have permission to view the loans table.</p>
+  </div>
+  {% endif %}
 </div>
 
+    {% if current_user.has_permission('feature_bulk_upload') %}
     <!-- Bulk Upload Modal -->
     <div id="bulkUploadModal" class="modal-overlay">
       <div class="modal-container" style="max-width: 760px; width: 95%;">
@@ -350,6 +361,7 @@ html.dark .modal-overlay {
         </div>
       </div>
     </div>
+    {% endif %}
 {% endblock %}
 
 {% block scripts %}

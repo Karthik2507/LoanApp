@@ -63,5 +63,6 @@ def logout():
 @auth_bp.route("/")
 def root():
     if current_user.is_authenticated:
-        return redirect(url_for("dashboard.index"))
+        from app.decorators import get_user_home_url
+        return redirect(get_user_home_url())
     return redirect(url_for("auth.login"))

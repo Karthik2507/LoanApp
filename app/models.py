@@ -13,6 +13,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     preferred_currency = db.Column(db.String(8), default="INR")
     preferred_date_format = db.Column(db.String(20), default="%d %b %Y")
+    role = db.Column(db.String(20), default="admin", nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     loans = db.relationship("Loan", backref="owner", lazy="dynamic", cascade="all, delete-orphan")
@@ -22,6 +23,28 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_super_admin(self):
+        return self.role == "super_admin"
+
+    def has_permission(self, permission_key):
+        if self.is_super_admin:
+            return True
+        perm = UserPermission.query.filter_by(user_id=self.id, permission_key=permission_key).first()
+        if perm is not None:
+            return perm.is_allowed
+        return True
+
+
+class UserPermission(db.Model):
+    __tablename__ = "user_permissions"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    permission_key = db.Column(db.String(80), nullable=False)
+    is_allowed = db.Column(db.Boolean, default=True, nullable=False)
+
+    __table_args__ = (db.UniqueConstraint("user_id", "permission_key", name="uq_user_permission"),)
 
 
 class LoanCategory(db.Model):

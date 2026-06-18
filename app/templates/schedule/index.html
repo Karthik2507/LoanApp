@@ -15,6 +15,7 @@
       <a href="{{ url_for('recalc.index', loan_pk=loan.id) }}" class="btn secondary">
         <i data-lucide="calculator"></i> Recalculate
       </a>
+      {% if current_user.has_permission('feature_downloads') %}
       <div style="display:inline-block;position:relative">
         <button class="btn secondary" id="csvPdfBtn" type="button" style="gap:6px">
           <i data-lucide="download"></i> Download <i data-lucide="chevron-down" style="width:14px;height:14px;margin-left:2px"></i>
@@ -31,6 +32,7 @@
           </a>
         </div>
       </div>
+      {% endif %}
       
     {% endif %}
     <!-- <a href="{{ url_for('loans.add') }}" class="btn">
@@ -121,7 +123,11 @@
 
       <div class="card pad" style="height: 100%; min-height: 170px;">
         <h3 style="margin-bottom:10px">Principal vs. Interest</h3>
+        {% if current_user.has_permission('chart_schedule_amort') %}
         <div style="height: 110px; position: relative;"><canvas id="amortChart"></canvas></div>
+        {% else %}
+        <div style="display:flex;align-items:center;justify-content:center;height:110px;color:var(--text-muted);"><i data-lucide="lock" style="width:14px;height:14px;margin-right:6px"></i> Restricted</div>
+        {% endif %}
       </div>
 
     </div>
@@ -130,6 +136,7 @@
     <div class="card">
       <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
         <h3>Installments</h3>
+        {% if current_user.has_permission('table_schedule_installments') %}
         <div style="display:flex; align-items:center; gap:12px;">
           {% set ns = namespace(count=0) %}
           {% for s in loan.schedules %}
@@ -147,8 +154,10 @@
             {{ loan.schedules.count() }} total
           </span>
         </div>
+        {% endif %}
       </div>
 
+      {% if current_user.has_permission('table_schedule_installments') %}
       <div class="table-wrap" style="max-height:640px;overflow-y:auto">
         <table class="tbl">
 
@@ -247,6 +256,14 @@
 
         </table>
       </div>
+      {% else %}
+      <div class="card-body empty">
+        <i data-lucide="lock"></i>
+        <h3>Table Restricted</h3>
+        <p>You do not have permission to view the installments table.</p>
+      </div>
+      {% endif %}
+    </div>
     </div>
 
 <script id="amortization-data" type="application/json">

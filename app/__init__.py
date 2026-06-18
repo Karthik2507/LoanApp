@@ -35,6 +35,7 @@ def create_app():
     from app.blueprints.settings import settings_bp
     from app.blueprints.api import api_bp
     from app.blueprints.chatbot import chatbot_bp
+    from app.blueprints.super_admin import super_admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -45,6 +46,7 @@ def create_app():
     app.register_blueprint(settings_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(chatbot_bp)
+    app.register_blueprint(super_admin_bp)
 
     from app.utils import format_currency, format_date
     app.jinja_env.filters["money"] = format_currency
@@ -80,5 +82,17 @@ def create_app():
             except Exception as e:
                 db.session.rollback()
                 print(f"Error during schema migration: {e}")
+
+        # Safe alteration to add role column to users if it doesn't exist
+        try:
+            db.session.execute(db.text("SELECT role FROM users LIMIT 1"))
+        except Exception:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'admin'"))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error adding role column: {e}")
 
     return app
